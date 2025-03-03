@@ -1,0 +1,20 @@
+[project]
+name = "shopify-py-mcp"
+version = "0.1.0"
+description = "A MCP server project"
+readme = "README.md"
+requires-python = ">=3.11.6"
+dependencies = [
+    "mcp>=1.3.0",
+    "ShopifyAPI>=1.0.0",
+]
+[[project.authors]]
+name = "masashi kishimoto"
+email = "drehbleistift@gmail.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.scripts]
+shopify-py-mcp = "shopify_py_mcp:main"
