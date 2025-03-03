@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 import shopify
+import time
 
 from mcp.server.models import InitializationOptions
 import mcp.types as types
@@ -25,6 +26,124 @@ def initialize_shopify_api():
 server = Server("shopify-py-mcp")
 
 
+def get_all_shopify_products(total_limit=None, per_page_limit=250):
+    """
+    ShopifyAPIライブラリを使用して複数ページにわたる商品一覧を取得する関数
+
+    Parameters:
+    total_limit (int): 取得する総商品数（Noneの場合はすべての商品を取得）
+    per_page_limit (int): 1回のリクエストあたりの商品数（最大250）
+
+    Returns:
+    list: 商品のリスト
+    """
+    # 1ページあたりの上限を250に制限
+    per_page_limit = min(per_page_limit, 250)
+
+    all_products = []
+    next_page_url = None
+
+    try:
+        while True:
+            # 既に十分な商品が取得されているか確認
+            if total_limit is not None and len(all_products) >= total_limit:
+                break
+
+            # 残りの取得数を計算
+            current_limit = per_page_limit
+            if total_limit is not None:
+                current_limit = min(per_page_limit, total_limit - len(all_products))
+                if current_limit <= 0:
+                    break
+
+            # 商品一覧の取得
+            if next_page_url:
+                # next_page_urlからpage_infoを抽出
+                page_info = extract_page_info(next_page_url)
+                products = shopify.Product.find(
+                    limit=current_limit, page_info=page_info
+                )
+            else:
+                products = shopify.Product.find(limit=current_limit)
+
+            # 結果が空の場合は終了
+            if not products:
+                break
+
+            # 取得した商品を追加
+            all_products.extend(products)
+
+            # レスポンスヘッダーからページネーション情報を取得
+            response_headers = shopify.ShopifyResource.connection.response.headers
+            link_header = response_headers.get("Link", "")
+
+            # 次のページURLを抽出
+            next_page_url = extract_next_page_url(link_header)
+            if not next_page_url:
+                break
+
+            # レート制限を避けるために少し待機
+            time.sleep(0.5)
+
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+
+    # total_limitが指定されている場合、指定した数だけ返す
+    if total_limit is not None:
+        return all_products[:total_limit]
+
+    return all_products
+
+
+def extract_next_page_url(link_header):
+    """
+    Linkヘッダーから次のページのURLを抽出する
+
+    Parameters:
+    link_header (str): レスポンスのLinkヘッダー
+
+    Returns:
+    str: 次のページのURL（存在しない場合はNone）
+    """
+    if not link_header:
+        return None
+
+    links = link_header.split(",")
+    for link in links:
+        parts = link.split(";")
+        if len(parts) != 2:
+            continue
+
+        url = parts[0].strip().strip("<>")
+        rel = parts[1].strip()
+
+        if 'rel="next"' in rel:
+            return url
+
+    return None
+
+
+def extract_page_info(next_page_url):
+    """
+    URLからpage_infoパラメータを抽出する
+
+    Parameters:
+    next_page_url (str): 次のページのURL
+
+    Returns:
+    str: page_infoパラメータ
+    """
+    import urllib.parse
+
+    parsed_url = urllib.parse.urlparse(next_page_url)
+    query_params = urllib.parse.parse_qs(parsed_url.query)
+
+    if "page_info" in query_params:
+        return query_params["page_info"][0]
+
+    return None
+
+
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
     """
@@ -44,12 +163,6 @@ async def handle_list_tools() -> list[types.Tool]:
                         "minimum": 1,
                         "maximum": 250,
                         "default": 50,
-                    },
-                    "page": {
-                        "type": "number",
-                        "description": "ページ番号",
-                        "minimum": 1,
-                        "default": 1,
                     },
                 },
             },
@@ -290,9 +403,9 @@ async def handle_call_tool(
 async def handle_list_products(arguments: dict) -> list[types.TextContent]:
     """商品一覧を取得する"""
     limit = int(arguments.get("limit", 50))
-    page = int(arguments.get("page", 1))
-
-    products = shopify.Product.find(limit=limit, page=page)
+    products = get_all_shopify_products(
+        total_limit=limit, per_page_limit=250  # 1回のリクエストで最大250件取得
+    )
 
     result = []
     for product in products:
