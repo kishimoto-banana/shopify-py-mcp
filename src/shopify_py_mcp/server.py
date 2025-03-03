@@ -236,13 +236,17 @@ async def handle_list_tools() -> list[types.Tool]:
                                     "type": "string",
                                     "description": "オプション名",
                                 },
+                                "position": {
+                                    "position": "number",
+                                    "description": "オプション順番",
+                                },
                                 "values": {
                                     "type": "array",
                                     "description": "オプション値",
                                     "items": {"type": "string"},
                                 },
                             },
-                            "required": ["name", "values"],
+                            "required": ["name", "position", "values"],
                         },
                     },
                     "images": {
@@ -325,6 +329,10 @@ async def handle_list_tools() -> list[types.Tool]:
                                 "name": {
                                     "type": "string",
                                     "description": "オプション名",
+                                },
+                                "position": {
+                                    "position": "number",
+                                    "description": "オプション順番",
                                 },
                                 "values": {
                                     "type": "array",
@@ -513,14 +521,18 @@ async def handle_create_product(arguments: dict) -> list[types.TextContent]:
 
     # オプションの設定
     if "options" in arguments and arguments["options"]:
+        options = []
         for option_data in arguments["options"]:
             option = shopify.Option()
             option.name = option_data["name"]
+            option.position = option_data["position"]
             option.values = option_data["values"]
-            product.options.append(option)
+            options.append(option)
+        product.options = options
 
     # バリエーションの設定
     if "variants" in arguments and arguments["variants"]:
+        variants = []
         for variant_data in arguments["variants"]:
             variant = shopify.Variant()
             if "price" in variant_data:
@@ -535,7 +547,8 @@ async def handle_create_product(arguments: dict) -> list[types.TextContent]:
                 variant.option2 = variant_data["option2"]
             if "option3" in variant_data:
                 variant.option3 = variant_data["option3"]
-            product.variants.append(variant)
+            variants.append(variant)
+        product.variants = variants
 
     # 画像の設定
     if "images" in arguments and arguments["images"]:
