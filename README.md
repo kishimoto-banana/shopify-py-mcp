@@ -9,8 +9,7 @@ Shopify APIと連携するMCPサーバーです。このサーバーを使用す
 このサーバーは以下のツールを提供します：
 
 1. **list_products**: 商品一覧を取得する
-   - `limit`: 取得する商品数（最大250）
-   - `page`: ページ番号
+   - `limit`: 取得する商品数（最大250、デフォルト値は50）
 
 2. **get_product**: 商品の詳細情報を取得する
    - `product_id`: 商品ID（必須）
@@ -65,7 +64,7 @@ Claude Desktopで使用する場合は、以下の設定をclaude_desktop_config
     "command": "uv",
     "args": [
       "--directory",
-      "/Users/kishimoto/src/github.com/drobe-inc/shopify-py-mcp",
+      "/your_path/shopify-py-mcp",
       "run",
       "shopify-py-mcp"
     ],
@@ -132,7 +131,7 @@ uv sync --dev --all-extras
 MCP Inspectorを使用してデバッグすることができます：
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory /Users/kishimoto/src/github.com/drobe-inc/shopify-py-mcp run shopify-py-mcp
+npx @modelcontextprotocol/inspector uv --directory /your_path/shopify-py-mcp run shopify-py-mcp
 ```
 
 ### ビルドと公開
