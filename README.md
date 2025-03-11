@@ -2,6 +2,10 @@
 
 Shopify APIと連携するMCPサーバーです。このサーバーを使用することで、Claude DesktopからShopifyの商品情報を取得・操作することができます。
 
+<a href="https://glama.ai/mcp/servers/zfff0mhppb">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/zfff0mhppb/badge" alt="Shopify Python Server MCP server" />
+</a>
+
 ## 機能
 
 ### ツール
